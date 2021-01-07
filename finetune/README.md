@@ -1,12 +1,13 @@
-This directory contains code and data for downstream tasks(Supervised RE and Fewshot RE).
+此repo包含下游任务(有监督的RE和Fewshot RE)的代码和数据。 
 
 ### 1. Supervised RE
 
 #### 1.1 Dataset
 
-We provide SemEval, Wiki80, ChemProt in `data/`, but you need download TACRED from [LDC](https://catalog.ldc.upenn.edu/LDC2018T24) manually. 
+我们在`data/`中提供SemEval，Wiki80，ChemProt，但您需要手动从[LDC](https://catalog.ldc.upenn.edu/LDC2018T24)下载TACRED。 
 
-Please ensure every dataset has `train.txt`, `dev.txt`,`test.txt`and `rel2id.json`(**NA must be 0 if this benchmark has NA relation**). And `train.txt`(the same as `dev.txt`, `text.txt`) should have multiple lines, each line has the following json-format:
+请确保每个数据集都具有“train.txt”，“dev.txt”，“test.txt”和“rel2id.json”(**如果该基准具有NA关系，则NA必须为0 **)。 
+并且`train.txt`，`dev.txt`，`text.txt`，应该有多行，每行具有以下json格式：
 
 ```python
 {
@@ -23,17 +24,19 @@ Please ensure every dataset has `train.txt`, `dev.txt`,`test.txt`and `rel2id.jso
 
 **IMPORTANT**
 
-We don't use our own code to eval the models on SemEval, we use the **official** evaluation script. See https://github.com/sahitya0000/Relation-Classification/tree/master/corpus/SemEval2010_task8_scorer-v1.2. So if the results on SemEval are abnormal, please use the official script. The other datasets can be evaluated normally using this code.
+我们不会使用自己的代码来评估SemEval上的模型，而是使用“官方”评估脚本。 
+参见https://github.com/sahitya0000/Relation-Classification/tree/master/corpus/SemEval2010_task8_scorer-v1.2
+因此，如果SemEval上的结果异常，请使用官方脚本。 可以使用此代码正常评估其他数据集。
 
 #### 1.2 Train
 
-Run the following scirpt:
+运行以下脚本 :
 
 ```shell
 bash run.sh
 ```
 
-If you want to use different model, you can change `ckpt` in `run.sh`
+如果要使用其他模型，可以在run.sh中更改ckpt 
 
 ```shell
 array=(42 43 44 45 46)
@@ -44,19 +47,19 @@ do
 done
 ```
 
-"None" means Bert. You can use any checkpoint in `../pretrain/ckpt` directory for finetuning.
+"None" 代表 Bert. 您可以在`../pretrain/ckpt`目录中使用任何checkpoint进行微调
 
 #### 2. FewShot RE
 
-We have downloaded [FewRel](https://github.com/thunlp/FewRel) into `fewshotRE` and modified some lines.
+我们已经下载了  [FewRel](https://github.com/thunlp/FewRel) into `fewshotRE` 并修改了一些行 .
 
-Run the following scirpt:
+运行以下脚本： 
 
 ```shell
 bash run.sh
 ```
 
-If you want to use different models, you can change `ckpt` in `run.sh`
+如果要使用其他模型，可以在run.sh中更改ckpt 
 
 ```shell
 array=(42)
@@ -67,8 +70,8 @@ do
 done
 ```
 
-"None" means Bert. You can use any checkpoint in `../pretrain/ckpt` directory for finetuning.
+"None" 代表 Bert. 您可以在`../pretrain/ckpt`目录中使用任何checkpoint进行微调
 
 **IMPORTANT**
 
-We don't provide test set. If you want to test your model, please upload your results to https://thunlp.github.io/fewrel.html. See https://github.com/thunlp/FewRel. 
+我们不提供测试集。 如果要测试模型，请将结果上传到  https://thunlp.github.io/fewrel.html. See https://github.com/thunlp/FewRel. 

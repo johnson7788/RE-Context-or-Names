@@ -21,8 +21,8 @@ from tqdm import trange
 from torch.utils import data
 from collections import Counter
 from transformers import AdamW, get_linear_schedule_with_warmup
-from dataset import *
-from model import *
+from dataset import CPDataset, MTBDataset
+from model import CP, MTB
 
 
 

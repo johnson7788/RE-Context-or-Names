@@ -12,7 +12,7 @@ from collections import Counter, defaultdict
 
 
 def filter_sentence(sentence):
-    """Filter sentence.
+    """单个句子过滤，Filter sentence.
     
     Filter sentence:
         - head mention equals tail mention
@@ -29,12 +29,11 @@ def filter_sentence(sentence):
             }
 
     Returns:
-        True or False. If the sentence contains abnormal conditions 
-        above, return True. Else return False
+         True or False。 如果句子中包含上述异常条件，则返回True。 其他返回False
 
     Raises:
-        If sentence's format isn't the same as described above, 
-        this function may raise `key not found` error by Python Interpreter.
+        如果句子的格式与上述格式不同，
+        则此函数可能会因Python Interpreter引发“key not found”错误。
     """
     head_pos = sentence["h"]["pos"][0]
     tail_pos = sentence["t"]["pos"][0]
@@ -130,13 +129,14 @@ def process_data_for_CP(data):
         os.mkdir("../data/CP")
     json.dump(list_data, open("../data/CP/cpdata.json","w"))
     json.dump(rel2scope, open("../data/CP/rel2scope.json", 'w'))
+    print(f"CP 数据处理完成")
+    os.system('ls ../data/CP')
 
 
 def process_data_for_MTB(data):
     """Process data for MTB. 
 
-    This function will filter abnormal sentences, and entity pair of which 
-    sentence number is less than 2(This entity pair can't form positive sentence pair).
+    此函数将过滤异常句子，以及句子数小于2的实体对(该实体对不能形成positive句子对)。
 
     Args:
         data: Original data for pre-training and is a dict whose key is relation.
@@ -156,7 +156,7 @@ def process_data_for_MTB(data):
 
     Returns: 
         No returns. 
-        But this function will save three json-formatted files:
+        但是此功能将保存三个json格式的文件 :
             - list_data: A list of sentences.
             - entpair2scope: A python dict whose key is `head_id#tail_id` and value is 
                 a scope which is left-closed-right-open `[)`. All sentences in one same 
@@ -189,18 +189,14 @@ def process_data_for_MTB(data):
                     }
         
     Raises:
-        If data's format isn't the same as described above, 
-        this function may raise `key not found` error by Python Interpreter.
+        如果数据格式与上述格式不同，则此函数可能会因Python Interpreter引发“key not found”错误。
     """
-    # Maximum number of sentences sharing the same entity pair.
-    # This parameter is set for limit the bias towards popular 
-    # entity pairs which have many sentences. Of cource, you can
-    # change this parameter, but in our expriment, we use 8.
-    max_num = 8 
+    # 共享同一实体对的最大句子数。设置此参数是为了限制偏向具有很多句子的流行实体对。
+    # 当然，您可以更改此参数，但是在我们的实验中，我们使用8。
+    max_num = 8
 
-    # We change the original data's format. The ent_data is 
-    # a python dict of which key is `head_id#tail_id` and value
-    # is sentences which hold this same entity pair.
+    # 我们更改原始数据的格式。
+    # ent_data是一个python字典，其中的key是`head_id#tail_id`，value是包含相同实体对的句子。
     ent_data = defaultdict(list)
     for key in data.keys():
         for sentence in data[key]:
@@ -219,11 +215,8 @@ def process_data_for_MTB(data):
         list_data.extend(ent_data[key][0:max_num])
         entpair2scope[key] = [ll, len(list_data)]
         ll = len(list_data)
-
-    # We will pre-generate `hard` nagative samples. The entpair2negpair
-    # is a python dict of which key is `head_id#tail_id`. And the value of the dict
-    # is the same format as key, but head_id or tail_id is different(only one id is 
-    # different). 
+    # 我们将预先生成“硬”负样本。 entpair2negpair是python字典，其key为`head_id#tail_id`。
+    # dict的value与key的格式相同，但是head_id或tail_id不同(仅一个id不同)。
     entpair2negpair = defaultdict(list)
     entpairs = list(entpair2scope.keys())
     entpairs.sort(key=lambda a: a.split("#")[0])
@@ -247,6 +240,8 @@ def process_data_for_MTB(data):
     json.dump(entpair2negpair, open("../data/MTB/entpair2negpair.json","w"))
     json.dump(entpair2scope, open("../data/MTB/entpair2scope.json", "w"))
     json.dump(list_data, open("../data/MTB/mtbdata.json", "w"))
+    print(f"MTB 数据处理完成:")
+    os.system('ls ../data/MTB')
 
 
 def set_seed(seed):
@@ -255,9 +250,26 @@ def set_seed(seed):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
 
+def part_of_dict(d, num, rnd=False):
+    """
+    返回传入的字典的一部分，字典的一个子集，
+    :param d: 字典，
+    :param num: 返回字典中的几个元素
+    :param rnd: True是表示随机返回，False是按字典顺序返回
+    :return: dict
+    """
+    if rnd:
+        import random
+        all_keys = list(d.keys())
+        rnd_keys = random.sample(all_keys, num)
+        newdict = {key:d[key] for key in rnd_keys}
+    else:
+        iterator = iter(d.items())
+        newdict = dict(next(iterator) for i in range(num))
+    return newdict
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="")
+    parser = argparse.ArgumentParser(description="数据集预处理")
     parser.add_argument("--dataset", dest="dataset", type=str, default="MTB", help="{MTB,CP}")
     args = parser.parse_args()
     set_seed(42)
@@ -265,31 +277,5 @@ if __name__ == "__main__":
     data = json.load(open("../data/exclude_fewrel_distant.json"))
     if args.dataset == "CP":
         process_data_for_CP(data)
-
     elif args.dataset == "MTB":
         process_data_for_MTB(data)
-    
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

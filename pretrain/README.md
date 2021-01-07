@@ -7,6 +7,18 @@
 然后将数据集放在“./data”目录中。 (您可能需要`mkdir data`)，然后运行`code/prepare_data.py`准备预训练数据。
 
 
+```buildoutcfg
+data/  迷你数据集，从exclude_fewrel_distant.json中节选部分,
+├── CP
+│   ├── cpdata.json   数据
+│   └── rel2scope.json 对应数据中的关系
+├── MTB
+│   ├── entpair2negpair.json
+│   ├── entpair2scope.json  对应数据中的关系
+│   └── mtbdata.json 数据
+└── exclude_fewrel_distant.json
+```
+
 ### 2. Pretrained Model
 
 您可以从以下位置下载我们的预训练模型

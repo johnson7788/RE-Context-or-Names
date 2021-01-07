@@ -132,6 +132,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="latentRE")
     parser.add_argument("--cuda", dest="cuda", type=str, 
                         default="4", help="gpu id")
+    parser.add_argument("--gpu", dest="gpu", action='store_true',
+                        help="是否使用GPU，默认为False")
 
     parser.add_argument("--lr", dest="lr", type=float,
                         default=5e-5, help='learning rate')
@@ -145,7 +147,7 @@ if __name__ == "__main__":
     parser.add_argument("--alpha", dest="alpha", type=float,
                         default=0.3, help="true entity(not `BLANK`) proportion")
 
-    parser.add_argument("--model", dest="model", type=str,
+    parser.add_argument("--model", dest="model", type=str,required=True,
                         default="", help="{MTB, CP}")
     parser.add_argument("--train_sample",action="store_true",
                         help="dynamic sample or not")
@@ -188,7 +190,11 @@ if __name__ == "__main__":
     
     # set backend
     if args.local_rank == -1:
-        device = torch.device("cuda")
+        if args.gpu:
+            #使用GPU
+            device = torch.device("cuda")
+        else:
+            device = torch.device("cpu")
     else:
         torch.cuda.set_device(args.local_rank)
         device = torch.device("cuda", args.local_rank)
@@ -206,7 +212,7 @@ if __name__ == "__main__":
             f.write(str(args)+"\n")
             f.write("----------------------------------------------------------------------------\n")
 
-    # Model and dataset
+    #初始化模型和数据
     if args.model == "MTB":
         model = MTB(args).to(args.device)
         train_dataset = MTBDataset("../data/MTB", args)

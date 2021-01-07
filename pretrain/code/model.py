@@ -106,7 +106,7 @@ class CP(nn.Module):
 class MTB(nn.Module):
     """Matching the Blanks.
 
-    This class implements `MTB` model based on model `BertForMaskedLM`.
+    此class基于模型`BertForMaskedLM` 实现`MTB`模型。
 
     Attributes:
         model: Model to train.
@@ -117,6 +117,7 @@ class MTB(nn.Module):
         super(MTB, self).__init__()
         self.model = BertForMaskedLM.from_pretrained('bert-base-uncased')
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+        # 加了sigmoid 的BCELoss损失, 就是内部自动计算logit, 就是逻辑回归损失，Binary Cross Entropy, 或者二分类的交叉熵损失
         self.bceloss = nn.BCEWithLogitsLoss()
         self.args = args
     

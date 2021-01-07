@@ -167,11 +167,11 @@ class CPDataset(data.Dataset):
 class MTBDataset(data.Dataset):
     """Overwritten class Dataset for model MTB.
 
-    This class prepare data for training of MTB.
+    该class为训练MTB准备数据。
     """
     def __init__(self, path, args):
-        """Inits tokenized sentence and positive pair for MTB.
-        
+        """
+        初始化MTB的tokenized sentence和positive pair。
         Args:
             path: path to your dataset.
             args: args from command line.
@@ -189,16 +189,19 @@ class MTBDataset(data.Dataset):
         self.path = path 
         self.args = args 
         data = json.load(open(os.path.join(path, "mtbdata.json")))
+        # 将原始文本转换为BERT输入的ID，并找到实体位置。
         entityMarker = EntityMarker()
         
-        # Important Configures
+        # Important Configures, 句子总数
         tot_sentence = len(data)
 
-        # Converts tokens to ids and meanwhile `BLANK` some entities randomly.
+        # 将token转换为ID，同时将某些实体随机化为“BLANK”。
+        # 初始化 tokens, mask , h_pos, t_pos
         self.tokens = np.zeros((tot_sentence, args.max_length), dtype=int)
         self.mask = np.zeros((tot_sentence, args.max_length), dtype=int)
         self.h_pos = np.zeros((tot_sentence), dtype=int)
         self.t_pos = np.zeros((tot_sentence), dtype=int)
+        #迭代数据
         for i, sentence in enumerate(data):
             h_flag = random.random() > args.alpha
             t_flag = random.random() > args.alpha

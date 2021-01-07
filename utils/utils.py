@@ -12,8 +12,8 @@ from transformers import BertTokenizer
 from collections import defaultdict, Counter
 
 class EntityMarker():
-    """Converts raw text to BERT-input ids and finds entity position.
-
+    """
+    将原始文本转换为BERT输入的ID，并找到实体位置。
     Attributes:
         tokenizer: Bert-base tokenizer.
         h_pattern: A regular expression pattern -- * h *. Using to replace head entity mention.

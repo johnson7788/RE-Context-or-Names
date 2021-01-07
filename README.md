@@ -14,15 +14,14 @@ If you use this code, please cite us
 
 ### Quick Start
 
-You can quickly run our code by following steps:
+您可以按照以下步快速运行我们的代码： 
 
-- Install dependencies as described in following section. 
-- cd to `pretrain` or `finetune` directory then download and pre-processing data for pre-traing or finetuning.    
-
+- 如以下部分所述安装依赖项。 
+- cd进入`pretrain` or `finetune`”目录，然后下载并预处理数据以进行预训练或微调。 
 
 ### 1. Dependencies
 
-Run the following script to install dependencies.
+运行以下脚本以安装依赖项。 
 
 ```shell
 pip install -r requirement.txt
@@ -31,19 +30,21 @@ pip install -r requirement.txt
 **You need install transformers and apex manually.**
 
 **transformers**
-We use huggingface transformers to implement Bert.  And for convenience, we have downloaded  [transformers](https://github.com/huggingface/transformers) into `utils/`. And we have also modified some lines in the class `BertForMaskedLM` in `src/transformers/modeling_bert.py` while keep the other codes unchanged. 
+我们使用huggingface transformers来实现Bert。 
+为了方便起见，我们将[transformers](https://github.com/huggingface/transformers)下载到了utils/中。 
+并且我们还修改了src/transformers/modeling_bert.py中的类BertForMaskedLM中的某些行，同时保持其他代码不变。 
 
-You just need run 
+您只需要手动安装transformers即可。
+
+```shell
+cd utils/transformers  && pip install .
 ```
-pip install .
-```
-to install transformers manually.
 
 **apex**
 Install [apex](https://github.com/NVIDIA/apex) under the offical guidance.
 
 ### 2. More details
-You can cd to `pretrain` or `finetune` to learn more details about pre-training or finetuning.
+您可以进入进行`pretrain` or `finetune`，以了解有关预训练或微调的更多详细信息。
 
 
 

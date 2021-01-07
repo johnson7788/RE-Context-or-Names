@@ -1,4 +1,6 @@
-
+# -*- coding: utf-8 -*-
+# @Date  : 2021/1/7 2:45 下午
+# @Desc  : 预训练模型函数，调整amp混合精度运算
 import os
 import json
 import torch
@@ -15,7 +17,7 @@ import random
 import time
 import matplotlib.pyplot as plt
 matplotlib.use('Agg')
-from apex import amp
+# from apex import amp
 from tqdm import tqdm
 from tqdm import trange
 from torch.utils import data
@@ -23,7 +25,6 @@ from collections import Counter
 from transformers import AdamW, get_linear_schedule_with_warmup
 from dataset import CPDataset, MTBDataset
 from model import CP, MTB
-
 
 
 def log_loss(step_record, loss_record):
@@ -62,7 +63,7 @@ def train(args, model, train_dataset):
     scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=args.warmup_steps, num_training_steps=step_tot)
 
     # amp training
-    model, optimizer = amp.initialize(model, optimizer, opt_level="O1")
+    # model, optimizer = amp.initialize(model, optimizer, opt_level="O1")
 
     # distributed training
     if args.local_rank != -1:
@@ -89,11 +90,12 @@ def train(args, model, train_dataset):
             if args.gradient_accumulation_steps > 1:
                 loss = loss / args.gradient_accumulation_steps
             
-            with amp.scale_loss(loss, optimizer) as scaled_loss:
-                scaled_loss.backward()
-            
+            # with amp.scale_loss(loss, optimizer) as scaled_loss:
+            #     scaled_loss.backward()
+            loss.backward()
+
             if step % args.gradient_accumulation_steps == 0:
-                nn.utils.clip_grad_norm_(amp.master_params(optimizer), args.max_grad_norm)
+                # nn.utils.clip_grad_norm_(amp.master_params(optimizer), args.max_grad_norm)
                 optimizer.step()
                 scheduler.step()
                 model.zero_grad()

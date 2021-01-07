@@ -25,31 +25,30 @@ class EntityMarker():
         self.tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
         self.h_pattern = re.compile("\* h \*")
         self.t_pattern = re.compile("\^ t \^")
+        #统计一共有多少个替换错误的样本
         self.err = 0
         self.args = args
 
     def tokenize(self, raw_text, h_pos_li, t_pos_li, h_type=None, t_type=None, h_blank=False, t_blank=False):
         """Tokenizer for `CM`(typically), `CT`, `OC` settings.
 
-        This function converts raw text to BERT-input ids and uses entity-marker to highlight entity 
-        position and randomly raplaces entity metion with special `BLANK` symbol. Entity mention can 
-        be entity type(If h_type and t_type are't none). And this function returns ids that can be 
-        the inputs to BERT directly and entity postion.
-        
+        该函数将原始文本转换为BERT输入的ID，并使用实体标记突出显示实体位置，
+        并使用特殊的“BLANK”符号随机替换实体。 实体提及可以是实体类型(如果h_type和t_type不为none)。
+        并且此函数返回可以直接作为BERT输入和实体位置输入的ID。
+
         Args:
-            raw_text: A python list of tokens.
-            h_pos_li: A python list of head entity postion. For example, h_pos_li maybe [2, 6] which indicates
-                that heah entity mention = raw_text[2:6].
-            t_pos_li: The same as h_pos_li.
-            h_type: Head entity type. This argument is used when we use `CT` settings as described in paper.
+            raw_text: list, 句子的tokens列表
+            h_pos_li: 实体位置的python列表。 其实和结束位置，[start_idx,end_idx], 例如，h_pos_li可能为[2，6]，它表示heah实体提及= raw_text [2：6]。
+            t_pos_li: 同 h_pos_li.
+            h_type: 头实体，第一个实体类型。 如论文所述，当我们使用“CT”设置时，将使用该参数。
             t_type: Tail entity type.
-            h_blank: Whether convert head entity mention to `BLANK`.
-            t_blank: Whether convert tail entity mention to `BLANK`.
+            h_blank: 是否转换头实体提及 `BLANK`.
+            t_blank: 是否转换尾实体提及  `BLANK`.
         
         Returns:
-            tokenized_input: Input ids that can be the input to BERT directly.
-            h_pos: Head entity position(head entity marker start positon).
-            t_pos: Tail entity position(tail entity marker start positon).
+            tokenized_input: 输入ID，可以直接作为BERT的输入。
+            h_pos: 头实体位置(头实体标记的起始位置)。这里是[unused0]的位置
+            t_pos: 尾部实体位置(尾部实体标记的起始位置)。这里是[unused2]的位置
         
         Example:
             raw_text: ["Bill", "Gates", "founded", "Microsoft", "."]
@@ -60,19 +59,22 @@ class EntityMarker():
             h_blank: True
             t_blank: False
 
-            Firstly, replace entity mention with special pattern:
+            首先，将实体提及替换为特殊模式 :
             "* h * founded ^ t ^ ."
 
             Then, replace pattern:
             "[CLS] [unused0] [unused4] [unused1] founded [unused2] microsoft [unused3] . [SEP]"
 
-            Finally, find the postions of entities and convert tokenized sentence to ids:
+            最后，找到实体的位置并将tokenizer的句子转换为id
             [101, 1, 5, 2, 2631, 3, 7513, 4, 1012, 102]
             h_pos: 1
             t_pos: 5
         """
+        # eg: ['home', 'secretary', 'is', 'the', 'administrative', 'head', 'of', 'the', '*', 'h', '*', ',', 'and', 'is', 'the', 'principal', 'adviser', 'to', 'the', '^', 't', '^', 'on', 'all', 'matters', 'of', 'policy', 'and', 'administration', 'within', 'the', 'home', 'ministry', '.']
         tokens = []
+        # eg: ['ministry', 'of', 'home', 'affairs']
         h_mention = []
+        # eg: ['home', 'minister']
         t_mention = []
         for i, token in enumerate(raw_text):
             token = token.lower()    
@@ -91,7 +93,7 @@ class EntityMarker():
         h_mention = " ".join(h_mention)
         t_mention = " ".join(t_mention)
 
-        # tokenize
+        # tokenize, 弄了2遍tokenizer，好像没什么用
         tokenized_text = self.tokenizer.tokenize(text)
         tokenized_head = self.tokenizer.tokenize(h_mention)
         tokenized_tail = self.tokenizer.tokenize(t_mention)
@@ -100,13 +102,11 @@ class EntityMarker():
         p_head = " ".join(tokenized_head)
         p_tail = " ".join(tokenized_tail)
 
-        # If head entity type and tail entity type are't None, 
-        # we use `CT` settings to tokenize raw text, i.e. replacing 
-        # entity mention with entity type.
+        # 如果第一个实体类型和第二个实体类型都不为None，我们将使用“CT”设置来tokenize原始文本，即用实体类型替换实体提及。
         if h_type != None and t_type != None:
             p_head = h_type
             p_tail = t_type
-
+        #是否设置第一个实体为BLANK,如果为True,则把 * h * 替换为[unused0] [unused4] [unused1]
         if h_blank:
             p_text = self.h_pattern.sub("[unused0] [unused4] [unused1]", p_text)
         else:
@@ -115,9 +115,9 @@ class EntityMarker():
             p_text = self.t_pattern.sub("[unused2] [unused5] [unused3]", p_text)
         else:
             p_text = self.t_pattern.sub("[unused2] "+p_tail+" [unused3]", p_text)
-    
+        # 最终p_text为, eg: p_text: 'home secretary is the administrative head of the [unused0] [unused4] [unused1] , and is the principal adviser to the [unused2] home minister [unused3] on all matters of policy and administration within the home ministry .'
         f_text = ("[CLS] " + p_text + " [SEP]").split()
-        # If h_pos_li and t_pos_li overlap, we can't find head entity or tail entity.
+        # 校验是否替换成功，如果不成功，那么有问题,如果h_pos_li和t_pos_li重叠，则找不到头实体或尾实体。
         try:
             h_pos = f_text.index("[unused0]")
         except:
@@ -128,7 +128,7 @@ class EntityMarker():
         except:
             self.err += 1
             t_pos = 0
-
+        #eg:tokenized_input : [101, 2188, 3187, 2003, 1996, 3831, 2132, 1997, 1996, 1, 5, 2, 1010, 1998, 2003, 1996, 4054, 11747, 2000, 1996, 3, 2188, 2704, 4, 2006, 2035, 5609, 1997, 3343, 1998, 3447, 2306, 1996, 2188, 3757, 1012, 102]
         tokenized_input = self.tokenizer.convert_tokens_to_ids(f_text)
         
         return tokenized_input, h_pos, t_pos

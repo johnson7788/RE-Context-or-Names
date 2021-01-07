@@ -145,7 +145,7 @@ if __name__ == "__main__":
                         default=3, help="max epoch number")
     
     parser.add_argument("--alpha", dest="alpha", type=float,
-                        default=0.3, help="true entity(not `BLANK`) proportion")
+                        default=0.3, help="true entity(not `BLANK`) 比例，处理正样本时，实体不是BLANK的比例")
 
     parser.add_argument("--model", dest="model", type=str,required=True,
                         default="", help="{MTB, CP}")

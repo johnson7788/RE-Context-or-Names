@@ -203,27 +203,35 @@ class MTBDataset(data.Dataset):
         self.t_pos = np.zeros((tot_sentence), dtype=int)
         #迭代数据
         for i, sentence in enumerate(data):
+            # token被替换成BLANK的概率
             h_flag = random.random() > args.alpha
             t_flag = random.random() > args.alpha
+            # 实体1和实体2的位置, eg: h_p: [8, 9, 10, 11]
             h_p = sentence["h"]["pos"][0]  
             t_p = sentence["t"]["pos"][0]
+            # 将原始文本转换为BERT输入的ID，并找到实体位置。ids是句子tokenizer后的id，ph是 头实体位置(头实体标记的起始位置)。这里是[unused0]的位置，
+            # pt 是尾部实体位置(尾部实体标记的起始位置)。这里是[unused2]的位置
             ids, ph, pt = entityMarker.tokenize(sentence["tokens"], [h_p[0], h_p[-1]+1], [t_p[0], t_p[-1]+1], None, None, h_flag, t_flag)
+            # 为了计算mask，
             length = min(len(ids), args.max_length)
+            #把默认为0的token替换成实际的tokenid，其余部分相当于padding了
             self.tokens[i][0:length] = ids[0:length]
+            # 只有对应有tokenid的位置时1，其它默认为0了
             self.mask[i][0:length] = 1
+            #表明第一个实体的位置，
             self.h_pos[i] = min(args.max_length-1, ph)
             self.t_pos[i] = min(args.max_length-1, pt)
-        print("The number of sentence in which tokenizer can't find head/tail entity is %d" % entityMarker.err)
+        print("tokenizer找不到头/尾实体的句子数%d" % entityMarker.err)
 
         entpair2scope = json.load(open(os.path.join(path, "entpair2scope.json")))
         entpair2negpair = json.load(open(os.path.join(path, "entpair2negpair.json")))
         self.pos_pair = []
         
-        # Generates all positive pair.
+        # 生成所有正样本对。 eg: self.pos_pair: [[0, 1], [2, 3], [4, 5]]
         for key in entpair2scope.keys():
             self.pos_pair.extend(self.__pos_pair__(entpair2scope[key]))
-        print("Positive pairs' number is %d" % len(self.pos_pair))
-        # Samples negative pairs dynamically.
+        print("Positive pairs 数量是 %d" % len(self.pos_pair))
+        # 负样本动态采样
         self.__sample__()
 
     def __sample__(self):    
@@ -261,16 +269,15 @@ class MTBDataset(data.Dataset):
         del neg_pair # save the memory 
 
     def __pos_pair__(self, scope):
-        """Gets all positive pairs.
-
+        """
+        获取所有正样本对。
         Args:
-            scope: A scope in which all sentences share the same
-                entity pair(head entity and tail entity).
-        
+            scope: 所有句子共享相同的实体对(头部实体和尾部实体)的范围。  eg: [0, 2]   return: [[0, 1]]
+            eg: scope: [2, 4] ; pos_pair:[[2, 3]]
+            eg: [4, 6] --> [[4, 5]]
         Returns:
-            pos_pair: All positive pairs in a scope. The number of 
-                positive pairs in a scope is (N-1)N/2 where N equals
-                scope[1] - scope[0]
+            pos_pair：scope中的所有positive pairs。
+            scope中的positive pairs为(N-1)N/2，其中N等于scope[1] - scope[0]
         """
         ent_scope = list(range(scope[0], scope[1]))
         pos_pair = []

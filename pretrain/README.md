@@ -13,7 +13,7 @@ data/  迷你数据集，从exclude_fewrel_distant.json中节选部分,
 │   ├── cpdata.json   数据
 │   └── rel2scope.json 对应数据中的关系
 ├── MTB
-│   ├── entpair2negpair.json
+│   ├── entpair2negpair.json  负样本对
 │   ├── entpair2scope.json  对应数据中的关系
 │   └── mtbdata.json 数据
 └── exclude_fewrel_distant.json
@@ -22,8 +22,9 @@ data/  迷你数据集，从exclude_fewrel_distant.json中节选部分,
 
 mtbdata.json的一条数据格式
 tokens: 句子的每个tokens
-h是主体，就是第一个实体，
-t: 是第二个实体，我们的目标就是分类出2个实体之间的关系。
+h是主体，就是第一个实体，或者称为Head entity 
+t: 是第二个实体，我们的目标就是分类出2个实体之间的关系。 或者称为 Tail entity 
+r: 代表一种关系
 {
   "tokens": ['Home', 'Secretary', 'is', 'the', 'administrative', 'head', 'of', 'the', 'Ministry', 'of', 'Home', 'Affairs', ',', 'and', 'is', 'the', 'principal', 'adviser', 'to', 'the', 'Home', 'Minister', 'on', 'all', 'matters', 'of', 'policy', 'and', 'administration', 'within', 'the', 'Home', 'Ministry', '.'],
   "h": {'id': 'Q2607861', 'name': 'ministry of home affairs', 'pos': [[8, 9, 10, 11]]},

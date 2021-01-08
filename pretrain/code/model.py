@@ -123,7 +123,20 @@ class MTB(nn.Module):
     
 
     def forward(self, l_input, l_mask, l_ph, l_pt, r_input, r_mask, r_ph, r_pt, label):
-        # compute not mask entity marker
+        """
+        样本来自dataset.py中的MTBDataset的函数__getitem__， 一个批次的数据
+        compute not mask entity marker
+        :param l_input: torch.Size([32, 64]), [batch_size, seq_len] 样本对的第一个样本，左侧样本，或者称为样本1，token id
+        :param l_mask: torch.Size([32, 64]),  [batch_size, seq_len]  token 的mask值, 0,1组成的序列
+        :param l_ph: l_ph 代表左侧样本的头实体的位置，头实体，即第一个实体
+        :param l_pt: l_ph 代表左侧样本的尾实体的位置，尾实体，即第二个实体
+        :param r_input: 第二个样本的 input id
+        :param r_mask: 第二个样本
+        :param r_ph: [batch_size]
+        :param r_pt:  [batch_size]
+        :param label: [batch_size], 这里只是分正样本和负样本，所以是0，1组成
+        :return:
+        """
         indice = torch.arange(0, l_input.size()[0])
         l_not_mask_pos = torch.zeros((l_input.size()[0], l_input.size()[1]), dtype=int) 
         r_not_mask_pos = torch.zeros((l_input.size()[0], l_input.size()[1]), dtype=int) 

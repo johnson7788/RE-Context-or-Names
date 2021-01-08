@@ -71,8 +71,8 @@ def train(args, model, train_dataset):
             model, device_ids=[args.local_rank], output_device=args.local_rank, find_unused_parameters=True
         )
 
-    print("Begin train...")
-    print("We will train model in %d steps" % step_tot)
+    print("开始训练...")
+    print("训练模型的总的steps数 %d" % step_tot)
     global_step = 0
     loss_record = []
     step_record = []

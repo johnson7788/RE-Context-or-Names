@@ -235,18 +235,17 @@ class MTBDataset(data.Dataset):
         self.__sample__()
 
     def __sample__(self):    
-        """Sample hard negative pairs.
+        """
+        采样hard负样本对
+        为MTB模型采样负样本对. 如 `prepare_data.py`脚本中函数
+        `entpair2negpair` 描述,  格式是 `head_id#tail_id`.
+        value与key的格式相同，但是head_id或tail_id不同(仅id不同)。
 
-        Sample hard negative pairs for MTB. As described in `prepare_data.py`, 
-        `entpair2negpair` is ` A python dict whose key is `head_id#tail_id`. And the value
-                is the same format as key, but head_id or tail_id is different(only one id is 
-                different). ` 
-        
         ! IMPORTANT !
-        We firstly get all hard negative pairs which may be a very huge number and then we sam
-        ple negaitive pair where sampling number equals positive pairs' numebr. Using our 
-        dataset, this code snippet can run normally. But if your own dataset is very big, this 
-        code snippet will cost a lot of memory.
+        我们首先得到所有可能得到大量的hard negative pairs，
+        然后对egaitive pair进行采样，其中采样数等于positive pairs数。
+        使用我们的数据集，此代码段可以正常运行。
+         但是，如果您自己的数据集很大，那么此代码段将占用大量内存。
         """
         entpair2scope = json.load(open(os.path.join(self.path, "entpair2scope.json")))
         entpair2negpair = json.load(open(os.path.join(self.path, "entpair2negpair.json")))
@@ -254,16 +253,19 @@ class MTBDataset(data.Dataset):
 
         # Gets all negative pairs.
         for key in entpair2negpair.keys():
+            # eg: key:'Q1044963#Q1020776', my_scope: [2474, 2478]
             my_scope = entpair2scope[key]
+            #  entpairs: ['Q1044963#Q124739']
             entpairs = entpair2negpair[key]
             if len(entpairs) == 0:
                 continue
             for entpair in entpairs:
+                # neg_scope: [2839, 2845]
                 neg_scope = entpair2scope[entpair]
                 neg_pair.extend(self.__neg_pair__(my_scope, neg_scope))
-        print("(MTB)Negative pairs number is %d" %len(neg_pair))
+        print("(MTB)Negative pairs 数量是 %d" %len(neg_pair))
         
-        # Samples a same number of negative pair with positive pairs. 
+        # 采样相同数量的负对和正对。
         random.shuffle(neg_pair)
         self.neg_pair = neg_pair[0:len(self.pos_pair)]
         del neg_pair # save the memory 
@@ -287,16 +289,15 @@ class MTBDataset(data.Dataset):
         return pos_pair
 
     def __neg_pair__(self, my_scope, neg_scope):
-        """Gets all negative pairs in different scope.
+        """获取不同范围内的所有负对。
 
         Args:
-            my_scope: A scope which is samling negative pairs.
-            neg_scope: A scope where sentences share only one entity
-                with sentences in my_scope.
+            my_scope: A scope which is samling negative pairs. eg: [2474, 2478]
+            neg_scope: 句子仅与my_scope中的句子共享一个实体的范围。   eg: [2839, 2845]
+
         
         Returns:
-            neg_pair: All negative pair. Sentences in different scope 
-                make up negative pairs.
+            neg_pair: 所有negative pair。 不同范围的句子组成negative pair。
         """
         my_scope = list(range(my_scope[0], my_scope[1]))
         neg_scope = list(range(neg_scope[0], neg_scope[1]))
@@ -314,25 +315,25 @@ class MTBDataset(data.Dataset):
         return len(self.pos_pair)
 
     def __getitem__(self, index):
-        """Gets training instance.
+        """获取训练的样本.
 
-        If index is odd, we will return nagative instance, otherwise 
-        positive instance. So in a batch, the number of positive pairs 
-        equal the number of negative pairs.
+        如果index为奇数，我们将返回nagative instance，
+        否则将返回positive instance。
+        因此，批次中positive pairs的数量等于negative pairs的数量。
 
         Args:
             index: Data index.
         
         Returns:
-            {l,h}_input: Tokenized word id.
+            {l,h}_input: Tokenized word id.  size: 64, seq_length
             {l,h}_mask: Attention mask for bert. 0 means masking, 1 means not masking.
-            {l,h}_ph: Position of head entity.
-            {l,h}_pt: Position of tail entity.
+            {l,h}_ph: 头实体的位置. eg: l_ph: 18    r_ph:31
+            {l,h}_pt: 尾实体的位置 eg: l_pt: 26   r_pt:38
             label: Positive or negative.
 
-            Setences in the same position in l_input and r_input is a sentence pair
-            (positive or negative).
+            l_input和r_input中处于相同位置是一个句子对(positive or negative)。
         """
+        #奇数取负样本，偶数取正样本
         if index % 2 == 0:
             l_ind = self.pos_pair[index][0]
             r_ind = self.pos_pair[index][1]
@@ -341,7 +342,9 @@ class MTBDataset(data.Dataset):
             l_ind = self.neg_pair[index][0]
             r_ind = self.neg_pair[index][1]
             label = 0
-        
+        #一次取出2个样本，组成样本对，l_input代表左侧的样本，r_input代表右侧的样本，组成一个样本对
+        # 奇数取负样本对，偶数取正样本对
+        # l_ph 代表左侧样本的头实体的位置
         l_input = self.tokens[l_ind]
         l_mask = self.mask[l_ind]
         l_ph = self.h_pos[l_ind]

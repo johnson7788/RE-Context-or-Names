@@ -175,32 +175,33 @@ class MTB(nn.Module):
             m_l_labels = m_l_labels.cuda()
             m_r_input = m_r_input.cuda()
             m_r_labels = m_r_labels.cuda()
-
+        #调用bert模型，这个是MLM语言模型的训练, 返回输出的元祖，包含3个值【hidden_stat, loss, prediction_score 】,  模型返回:  hidden_states, masked_lm_loss, prediction_scores, (attentions)
         m_l_outputs = self.model(input_ids=m_l_input, labels=m_l_labels, attention_mask=l_mask)
         m_r_outputs = self.model(input_ids=m_r_input, labels=m_r_labels, attention_mask=r_mask)
+        #损失是句子对中句子1和句子2的损失之和作为MLM的损失，防止模型退化 eg: m_loss:  tensor(7.6772, grad_fn=<AddBackward0>)
         m_loss = m_l_outputs[1] + m_r_outputs[1]
 
-        # sentence pair relation loss 
+        #开始第二部分，计算句子对的关系损失
         l_outputs = m_l_outputs
         r_outputs = m_r_outputs
 
         batch_size = l_input.size()[0]
         indice = torch.arange(0, batch_size)
         
-        # left output
+        #句子对的第一个句子的，隐藏层状态的输出hidden_states, torch.Size([32, 64, 768]), 取出l_ph第一个实体的位置的隐藏层状态-->l_h_state: torch.Size([32, 768]), 表示一个批次32个句子，只取每个实体位置的那个词的隐藏状态
         l_h_state = l_outputs[0][indice, l_ph] # (batch, hidden_size)
-        l_t_state = l_outputs[0][indice, l_pt] # (batch, hidden_size)
-        l_state = torch.cat((l_h_state, l_t_state), 1) # (batch, 2 * hidden_size)
+        l_t_state = l_outputs[0][indice, l_pt] # (batch, hidden_size), 取第二个实体的隐藏状态
+        l_state = torch.cat((l_h_state, l_t_state), 1) # (batch, 2 * hidden_size)， 把2个隐藏状态拼接到一起
         
-        # right output 
+        #第二个句子的实体的隐藏状态提取，句子中第一个实体和第二个实体的隐藏状态提取出来，然后拼接
         r_h_state = r_outputs[0][indice, r_ph] 
         r_t_state = r_outputs[0][indice, r_pt]
         r_state = torch.cat((r_h_state, r_t_state), 1)
 
-        # cal similarity
+        # cal similarity,  l_stat: torch.Size([32, 1536])  , r_stat: torch.Size([32, 1536]), 1536是2*hidden_size, 元素乘，在维度1上相加后变成内积
         similarity = torch.sum(l_state * r_state, 1) # (batch)
 
-        # cal loss
+        # cal loss， 使用内积计算损失
         r_loss = self.bceloss(similarity, label.float())
 
         return m_loss, r_loss 

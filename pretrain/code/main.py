@@ -85,6 +85,7 @@ def train(args, model, train_dataset):
             elif args.model == "CP":
                 inputs = {"input": batch[0].to(args.device), "mask": batch[1].to(args.device), "label": batch[2].to(args.device), "h_pos": batch[3].to(args.device), 't_pos': batch[4].to(args.device)}
             model.train()
+            #返回2个损失，m_loss是MLM语言模型的损失, r_loss是相似关系的句子将具有相似的表示形式的损失
             m_loss, r_loss = model(**inputs)
             loss = m_loss + r_loss
             if args.gradient_accumulation_steps > 1:

@@ -1082,10 +1082,10 @@ class BertForMaskedLM(BertPreTrainedModel):
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
         )
-
+        #隐藏层状态
         sequence_output = outputs[0]
         prediction_scores = self.cls(sequence_output)
-
+        # prediction_scores: torch.Size([32, 64, 30522]),   [batch_size,seq_len, vocab_size], outputs[2:]返回的是()空元祖
         outputs = (prediction_scores,) + outputs[2:]  # Add hidden states and attention if they are here
 
         if labels is not None:
@@ -1094,7 +1094,7 @@ class BertForMaskedLM(BertPreTrainedModel):
             # outputs = (masked_lm_loss,) + outputs
             outputs = (sequence_output, masked_lm_loss, ) + outputs  # We add sequence_output to outputs -- RE-Context-or-Names
 
-        return outputs  # (masked_lm_loss), prediction_scores, (hidden_states), (attentions)
+        return outputs  # hidden_states, masked_lm_loss, prediction_scores, (attentions)
 
     def prepare_inputs_for_generation(self, input_ids, attention_mask=None, **model_kwargs):
         input_shape = input_ids.shape

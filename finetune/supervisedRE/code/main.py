@@ -103,8 +103,8 @@ def train(args, model, train_dataloader, dev_dataloader, test_dataloader, devBag
     model.train()
     model.zero_grad()
 
-    print("Begin train...")
-    print("We will train model in %d steps" % step_tot)
+    print("开始训练")
+    print("训练的总步数是 %d" % step_tot)
     global_step = 0
     best_dev_score = 0
     best_test_score = 0

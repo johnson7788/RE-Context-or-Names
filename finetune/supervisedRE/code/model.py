@@ -30,10 +30,10 @@ class REModel(nn.Module):
             print("*******没有发现存在ckpt, 我们使用bert base!*******")
         
     def forward(self, input_ids, mask, h_pos, t_pos, label):
-        # bert encode
+        # 首先使用bert模型encode
         outputs = self.bert(input_ids, mask)
 
-        # entity marker
+        # entity marker,         # 是使用实体的隐藏向量还是使用BERT的CLS向量，如果是使用实体的隐藏向量，就会把头实体和尾实体拼接到一起，那么维度就会是2*hidden_size
         if self.args.entity_marker:
             indice = torch.arange(input_ids.size()[0])
             h_state = outputs[0][indice, h_pos]
@@ -43,7 +43,7 @@ class REModel(nn.Module):
             #[CLS]
             state = outputs[0][:, 0, :] #(batch_size, hidden_size)
 
-        # linear map
+        # linear map, 拼接起来预测
         logits = self.rel_fc(state) #(batch_size, rel_num)
         _, output = torch.max(logits, 1)
 

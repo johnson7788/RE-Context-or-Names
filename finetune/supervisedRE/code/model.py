@@ -17,16 +17,17 @@ class REModel(nn.Module):
         else:
             print("CrossEntropy Loss has weight!")
             self.loss = nn.CrossEntropyLoss(weight=weight)
-
+        # 是使用实体的隐藏向量还是使用BERT的CLS向量，如果是使用实体的隐藏向量，就会把头实体和尾实体拼接到一起，那么维度就会是2*hidden_size
         scale = 2 if args.entity_marker else 1
+        #全连接层的输出
         self.rel_fc = nn.Linear(args.hidden_size*scale, args.rel_num)
         self.bert = BertModel.from_pretrained('bert-base-uncased')
         if args.ckpt_to_load != "None":
-            print("********* load from ckpt/"+args.ckpt_to_load+" ***********")
-            ckpt = torch.load("../../../pretrain/ckpt/"+args.ckpt_to_load)
+            print("********* 从这个位置加载模型 pretrain/ckpt/CP/"+args.ckpt_to_load+" ***********")
+            ckpt = torch.load("../../../pretrain/ckpt/"+args.ckpt_to_load, map_location='cpu')
             self.bert.load_state_dict(ckpt["bert-base"])
         else:
-            print("*******No ckpt to load, Let's use bert base!*******")
+            print("*******没有发现存在ckpt, 我们使用bert base!*******")
         
     def forward(self, input_ids, mask, h_pos, t_pos, label):
         # bert encode

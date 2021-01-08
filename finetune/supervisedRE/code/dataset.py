@@ -39,7 +39,7 @@ class REDataset(data.Dataset):
         else:
             print("Warning: There is no `type2id.json` in "+ path +", If you want to train model using `OT`, `CT` settings, please firstly run `utils.py` to get `type2id.json`.")
     
-        print("pre process " + mode)
+        print("开始预处理文件 " + mode)
         # pre process data
         self.input_ids = np.zeros((tot_instance, args.max_length), dtype=int)
         self.mask = np.zeros((tot_instance, args.max_length), dtype=int) 
@@ -49,7 +49,7 @@ class REDataset(data.Dataset):
 
         for i, ins in enumerate(data):
             self.label[i] = rel2id[ins["relation"]]            
-            # tokenize
+            # tokenize, 上下文+实体提及
             if args.mode == "CM":
                 ids, ph, pt = entityMarker.tokenize(data[i]["token"], data[i]['h']['pos'], data[i]['t']['pos'])
             elif args.mode == "OC":
@@ -76,7 +76,7 @@ class REDataset(data.Dataset):
             self.mask[i][0:length] = 1
             self.h_pos[i] = min(ph, args.max_length-1) 
             self.t_pos[i] = min(pt, args.max_length-1) 
-        print("The number of sentence in which tokenizer can't find head/tail entity is %d" % entityMarker.err)
+        print("tokenizer无法找到头/尾实体的句子数量为 %d" % entityMarker.err)
     
     def __len__(self):
         return len(self.input_ids)

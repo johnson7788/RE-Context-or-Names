@@ -229,8 +229,8 @@ if __name__ == "__main__":
                         default='bert',help='encoder')
     parser.add_argument("--optim", dest="optim", type=str,
                         default='adamw',help='optimizer')
-    
-    
+    parser.add_argument("--gpu", dest="gpu", action='store_true',
+                        help="是否使用GPU，默认为False")
     parser.add_argument("--weight_decay", dest="weight_decay", type=float,
                         default=1e-5, help="weight decay")
     parser.add_argument("--adam_epsilon", dest="adam_epsilon", type=float,
@@ -244,7 +244,7 @@ if __name__ == "__main__":
     parser.add_argument("--ckpt_to_load", dest="ckpt_to_load", type=str,
                         default="None", help="ckpt to load")
     parser.add_argument("--entity_marker", action='store_true', 
-                        help="if entity marker or cls")
+                        help="是使用实体的隐藏向量还是使用BERT的CLS向量，如果是使用实体的隐藏向量，就会把头实体和尾实体拼接到一起，那么维度就会是2*hidden_size")
     parser.add_argument("--train_prop", dest="train_prop", type=float,
                         default=1, help="train set prop")
     
@@ -279,14 +279,19 @@ if __name__ == "__main__":
     if args.train_prop == 1:
         print("Use all train data!")
         train_set = REDataset("../data/"+args.dataset, "train.txt", args)
+        dev_set = REDataset("../data/" + args.dataset, "dev.txt", args)
+        test_set = REDataset("../data/" + args.dataset, "test.txt", args)
     elif args.train_prop == 0.1:
         print("Use 10% train data!")
         train_set = REDataset("../data/"+args.dataset, "train_0.1.txt", args)
+        dev_set = REDataset("../data/" + args.dataset, "dev_0.1.txt", args)
+        test_set = REDataset("../data/" + args.dataset, "test_0.1.txt", args)
     elif args.train_prop == 0.01:
         print("Use 1% train data!")
         train_set = REDataset("../data/"+args.dataset, "train_0.01.txt", args)
-    dev_set = REDataset("../data/"+args.dataset, "dev.txt", args)
-    test_set = REDataset("../data/"+args.dataset, "test.txt", args)
+        dev_set = REDataset("../data/" + args.dataset, "dev_0.01.txt", args)
+        test_set = REDataset("../data/" + args.dataset, "test_0.01.txt", args)
+
 
     train_dataloader = data.DataLoader(train_set, batch_size=args.batch_size_per_gpu, shuffle=True)        
     dev_dataloader = data.DataLoader(dev_set, batch_size=args.batch_size_per_gpu, shuffle=False)
@@ -297,7 +302,8 @@ if __name__ == "__main__":
     args.rel_num = len(rel2id)
     #初始化模型
     model = REModel(args)
-    model.cuda()
+    if args.gpu:
+        model.cuda()
     train(args, model, train_dataloader, dev_dataloader, test_dataloader)
     
     

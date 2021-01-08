@@ -135,7 +135,6 @@ if __name__ == "__main__":
                         default="4", help="gpu id")
     parser.add_argument("--gpu", dest="gpu", action='store_true',
                         help="是否使用GPU，默认为False")
-
     parser.add_argument("--lr", dest="lr", type=float,
                         default=5e-5, help='learning rate')
     parser.add_argument("--batch_size_per_gpu", dest="batch_size_per_gpu", type=int, 

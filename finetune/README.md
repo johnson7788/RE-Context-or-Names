@@ -51,9 +51,14 @@ done
 
 
 ### --train_prop 0.01代表使用的是 这个数据文件 finetune/supervisedRE/data/wiki80/train_0.01.txt， 用来测试
+CM,OC,CT,OM,OT --mode 代表的是: 
+* CM: 上下文+实体提及
+* OC: 只有上下文
+* CT: 上下文+类型
+* OM: 只有实体提及
+* OT: 只有类型
 ```buildoutcfg
-python main.py --seed 42 --lr 3e-5 --batch_size_per_gpu 32 --max_epoch 20 --max_length 100 --mode CM --dataset wiki80 --entity_marker --ckpt_to_load ckpt_cp --train_prop 0.01
-
+python main.py --seed 42 --lr 3e-5 --batch_size_per_gpu 32 --max_epoch 20 --max_length 100 --mode CM --dataset wiki80 --entity_marker --ckpt_to_load CP --train_prop 0.01
 ```
 
 ### wiki80数据集

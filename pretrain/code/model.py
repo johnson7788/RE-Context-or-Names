@@ -6,12 +6,12 @@ from pytorch_metric_learning.losses import NTXentLoss
 from transformers import BertForMaskedLM, BertForPreTraining, BertTokenizer
 
 def mask_tokens(inputs, tokenizer, not_mask_pos=None):
-    """Prepare masked tokens inputs/labels for masked language modeling: 80% MASK, 10% random, 10% original.
+    """准备用于mask语言模型的mask token inputs/label, 15%的token中的 80% MASK, 10% random, 10% original.
     
     Args:
         inputs: Inputs to mask. (batch_size, max_length) 
         tokenizer: Tokenizer.
-        not_mask_pos: Using to forbid masking entity mentions. 1 for not mask.
+        not_mask_pos: 避免mask实体提及，1表示不要mask, torch.Size([32, 64])
     
     Returns:
         inputs: Masked inputs.
@@ -20,36 +20,53 @@ def mask_tokens(inputs, tokenizer, not_mask_pos=None):
 
     if tokenizer.mask_token is None:
         raise ValueError(
-            "This tokenizer does not have a mask token which is necessary for masked language modeling. Remove the --mlm flag if you want to use this tokenizer."
+            "该tokenizer没有mask token，这是mask语言模型所必需的。 如果要使用此tokenizer，请删除--mlm标志。"
         )
-
+    # 准备一个labels，初始化，其实labels就是开始输入的inputs， 开始的inputs被mask后作为新的inputs
     labels = inputs.clone()
-    # We sample a few tokens in each sequence for masked-LM training (with probability args.mlm_probability defaults to 0.15 in Bert/RoBERTa)
+    # 我们在每个序列中对masked-LM 训练采样了一些token(在Bert / RoBERTa中args.mlm_probability的默认值为0.15)
+    # 制作一个形式为(batch_size, max_length) 的，用0.15填充的矩阵
     probability_matrix = torch.full(labels.shape, 0.15)
+    # 获取specialtoken的位置，eg，其中的一个元素, 这里的1一般是CLS和SEP [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     special_tokens_mask = [
         tokenizer.get_special_tokens_mask(val, already_has_special_tokens=True) for val in labels.tolist()
     ]
+    #special token的位置，直接赋值为0.0, 其余位置还是0.15
     probability_matrix.masked_fill_(torch.tensor(special_tokens_mask, dtype=torch.bool), value=0.0)
     if tokenizer._pad_token is not None:
+        # tokenizer.pad_token_id是等于0，labels等于0的地方表示是padding的部分， eg: 其中一个元素，这里是一个句子 tensor([False, False, False, False, False, False, False, False, False, False,
+        #         False, False, False, False, False, False, False, False, False, False,
+        #         False, False, False, False, False, False, False, False, False, False,
+        #         False, False, False, False, False, False, False,  True,  True,  True,
+        #          True,  True,  True,  True,  True,  True,  True,  True,  True,  True,
+        #          True,  True,  True,  True,  True,  True,  True,  True,  True,  True,
+        #          True,  True,  True,  True])
         padding_mask = labels.eq(tokenizer.pad_token_id)
+        # padding的部分也赋值为0.0
         probability_matrix.masked_fill_(padding_mask, value=0.0)
     if not_mask_pos is None:
         masked_indices = torch.bernoulli(probability_matrix).bool()
     else:
+        # 15%的概率这个位置会被设为0，not_mask_pos取反后，与操作，表示这个位置是实体位置，不能被mask掉
         masked_indices = torch.bernoulli(probability_matrix).bool() & (~(not_mask_pos.bool())) # ** can't mask entity marker **
-    labels[~masked_indices] = -100  # We only compute loss on masked tokens
-
-    # 80% of the time, we replace masked input tokens with tokenizer.mask_token ([MASK])
+    #我们只计算mask的token的位置的损失, masked_indices取反，masked_indices: tensor([[False, False, False,  ..., False, False, False],...)
+    labels[~masked_indices] = -100  #
+    # labels 其中一个元素 pd.DataFrame(labels.numpy()[0]), 只计算不是位置为-100处的损失 [0: -100], [1: -100], [2: -100], [3: -100], [4: -100], [5: -100], [6: -100], [7: -100], [8: -100], [9: -100], [10: -100], [11: -100], [12: -100], [13: -100], [14: -100], [15: -100], [16: -100], [17: -100], [18: -100], [19: -100], [20: -100], [21: -100],
+    # 其中要被mask的token中 80% 的几率, 我们替换这个token为 [MASK] tokenizer.mask_token, 这个表示我们取的15%的mask的token中，80%的几率被mask替换
     indices_replaced = torch.bernoulli(torch.full(labels.shape, 0.8)).bool() & masked_indices
+    # 替换inputs中的位置
     inputs[indices_replaced] = tokenizer.convert_tokens_to_ids(tokenizer.mask_token)
 
     # 10% of the time, we replace masked input tokens with random word
     indices_random = torch.bernoulli(torch.full(labels.shape, 0.5)).bool() & masked_indices & ~indices_replaced
+    #生成形状为labels.shape,  数为字典长度中的随机的数字，作为随机的单词
     random_words = torch.randint(len(tokenizer), labels.shape, dtype=torch.long)
+    # 替换inputs中的位置
     inputs[indices_random] = random_words[indices_random]
 
-    # The rest of the time (10% of the time) we keep the masked input tokens unchanged
-    return inputs.cuda(), labels.cuda()
+    # 剩余10%的几率保持不变 The rest of the time (10% of the time) we keep the masked input tokens unchanged
+    # return inputs.cuda(), labels.cuda()
+    return inputs, labels
 
 class CP(nn.Module):
     """Contrastive Pre-training model.
@@ -138,19 +155,27 @@ class MTB(nn.Module):
         :return:
         """
         indice = torch.arange(0, l_input.size()[0])
+        # l_not_mask_pos和r_not_mask_pos是全0的tensor，和输入的形状一致
         l_not_mask_pos = torch.zeros((l_input.size()[0], l_input.size()[1]), dtype=int) 
         r_not_mask_pos = torch.zeros((l_input.size()[0], l_input.size()[1]), dtype=int) 
 
-        # Ensure that `mask_tokens` function doesn't mask entity mention.
+        # 确保 mask_tokens 函数不mask实体提及, 只有l_ph和l_pt的位置为1，其它的位置为0
         l_not_mask_pos[indice, l_ph] = 1
         l_not_mask_pos[indice, l_pt] = 1
 
         r_not_mask_pos[indice, r_ph] = 1
         r_not_mask_pos[indice, r_pt] = 1
 
-        # masked language model loss
+        # masked language model loss, 语言模型的mask操作，和BERT一样，但是加入了不要mask实体位置信息
         m_l_input, m_l_labels = mask_tokens(l_input.cpu(), self.tokenizer, l_not_mask_pos)
-        m_r_input, m_r_labels = mask_tokens(r_input.cpu(), self.tokenizer, r_not_mask_pos) 
+        m_r_input, m_r_labels = mask_tokens(r_input.cpu(), self.tokenizer, r_not_mask_pos)
+        #是否使用GPU
+        if self.args.gpu:
+            m_l_input = m_l_input.cuda()
+            m_l_labels = m_l_labels.cuda()
+            m_r_input = m_r_input.cuda()
+            m_r_labels = m_r_labels.cuda()
+
         m_l_outputs = self.model(input_ids=m_l_input, labels=m_l_labels, attention_mask=l_mask)
         m_r_outputs = self.model(input_ids=m_r_input, labels=m_r_labels, attention_mask=r_mask)
         m_loss = m_l_outputs[1] + m_r_outputs[1]

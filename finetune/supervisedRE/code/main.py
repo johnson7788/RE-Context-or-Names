@@ -15,13 +15,13 @@ import random
 import time
 import matplotlib.pyplot as plt
 matplotlib.use('Agg')
-from apex import amp
+# from apex import amp
 from tqdm import trange
 from torch.utils import data
 from collections import Counter
 from transformers import AdamW, get_linear_schedule_with_warmup
-from dataset import *
-from model import *
+from dataset import REDataset
+from model import REModel
 
 
 
@@ -95,8 +95,8 @@ def train(args, model, train_dataloader, dev_dataloader, test_dataloader, devBag
         optimizer = optim.Adam(params, args.lr)
 
     # amp training
-    if args.optim == "adamw":
-        model, optimizer = amp.initialize(model, optimizer, opt_level="O1")
+    # if args.optim == "adamw":
+    #     model, optimizer = amp.initialize(model, optimizer, opt_level="O1")
 
     # Data parallel
     model = nn.DataParallel(model)
@@ -121,9 +121,10 @@ def train(args, model, train_dataloader, dev_dataloader, test_dataloader, devBag
             model.train()
             loss, output = model(**inputs)
             if args.optim == "adamw":
-                with amp.scale_loss(loss, optimizer) as scaled_loss:
-                    scaled_loss.backward()
-                nn.utils.clip_grad_norm_(amp.master_params(optimizer), args.max_grad_norm)
+                # with amp.scale_loss(loss, optimizer) as scaled_loss:
+                #     scaled_loss.backward()
+                loss.backward()
+                # nn.utils.clip_grad_norm_(amp.master_params(optimizer), args.max_grad_norm)
             else:
                 loss.backward()
             optimizer.step()
@@ -290,10 +291,11 @@ if __name__ == "__main__":
     train_dataloader = data.DataLoader(train_set, batch_size=args.batch_size_per_gpu, shuffle=True)        
     dev_dataloader = data.DataLoader(dev_set, batch_size=args.batch_size_per_gpu, shuffle=False)
     test_dataloader = data.DataLoader(test_set, batch_size=args.batch_size_per_gpu, shuffle=False)
-    
+    #关系到id映射, 即label2id
     rel2id = json.load(open(os.path.join("../data/"+args.dataset, "rel2id.json")))
+    #label的数量rel_num
     args.rel_num = len(rel2id)
-    
+    #初始化模型
     model = REModel(args)
     model.cuda()
     train(args, model, train_dataloader, dev_dataloader, test_dataloader)

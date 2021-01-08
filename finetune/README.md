@@ -49,6 +49,34 @@ done
 
 "None" 代表 Bert. 您可以在`../pretrain/ckpt`目录中使用任何checkpoint进行微调
 
+
+### --train_prop 0.01代表使用的是 这个数据文件 finetune/supervisedRE/data/wiki80/train_0.01.txt， 用来测试
+```buildoutcfg
+python main.py --seed 42 --lr 3e-5 --batch_size_per_gpu 32 --max_epoch 20 --max_length 100 --mode CM --dataset wiki80 --entity_marker --ckpt_to_load ckpt_cp --train_prop 0.01
+
+```
+
+### wiki80数据集
+```buildoutcfg
+wiki80/
+├── dev.txt   开发集
+├── rel2id.json  关系id映射，即label2id的映射
+├── test.txt
+├── train.txt
+├── train_0.01.txt  训练集的1%
+├── train_0.1.txt
+└── type2id.json   实体类型到id的映射
+
+wiki80 $ cat train.txt | wc -l
+   39200
+wiki80 $ cat test.txt | wc -l
+   11200
+wiki80 $ cat dev.txt | wc -l
+    5600
+
+```
+
+
 #### 2. FewShot RE
 
 我们已经下载了  [FewRel](https://github.com/thunlp/FewRel) into `fewshotRE` 并修改了一些行 .

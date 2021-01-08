@@ -32,6 +32,7 @@ r: 代表一种关系
   "t": {'id': 'Q3440901', 'name': 'home minister', 'pos': [[20, 21]]}
 }
 ```
+#### 代码中CP和MTB的数据处理步骤一样， 只是模型不一样
 
 ### 2. Pretrained Model
 

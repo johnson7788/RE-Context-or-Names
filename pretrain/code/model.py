@@ -70,9 +70,9 @@ def mask_tokens(inputs, tokenizer, not_mask_pos=None):
 
 class CP(nn.Module):
     """Contrastive Pre-training model.
-
-    This class implements `CP` model based on model `BertForMaskedLM`. And we 
-    use NTXentLoss as contrastive loss function.
+    对比预训练模型
+    此类基于模型BertForMaskedLM实现CP模型。
+    我们使用NTXentLoss作为对比损失函数。
 
     Attributes:
         model: Model to train.
@@ -88,32 +88,32 @@ class CP(nn.Module):
         self.args = args 
     
     def forward(self, input, mask, label, h_pos, t_pos):
-        # masked language model loss
+        # masked language model loss, MLM, 更改形状，input torch.Size([32, 128])--> torch.Size([64, 64]),  mask:torch.Size([32, 128])-->torch.Size([64, 64])
         input = input.view(-1, self.args.max_length)
         mask = mask.view(-1, self.args.max_length)
-        label = label.view(-1) # (batch_size * 2)
-        h_pos = h_pos.view(-1)
-        t_pos = t_pos.view(-1)
+        label = label.view(-1) # (batch_size * 2)   torch.Size([32, 2])--> 64
+        h_pos = h_pos.view(-1)  # torch.Size([32, 2])-->64
+        t_pos = t_pos.view(-1)   # torch.Size([32, 2])-->64
 
-        # Ensure that `mask_tokens` function doesn't mask entity mention.
+        # Ensure that `mask_tokens` function doesn't mask entity mention. 同MTP，保证实体不要被mask掉
         indice = torch.arange(0, input.size()[0])
         not_mask_pos = torch.zeros((input.size()[0], input.size()[1]), dtype=int)
         not_mask_pos[indice, h_pos] = 1
         not_mask_pos[indice, t_pos] = 1
-
+        # 计算MLM的损失的方法和MTP是一样的，只不过是把句子对和一起，一起计算的，MTP是单独计算的
         m_input, m_labels = mask_tokens(input.cpu(), self.tokenizer, not_mask_pos)
         m_outputs = self.model(input_ids=m_input, labels=m_labels, attention_mask=mask)
         m_loss = m_outputs[1]
 
         outputs = m_outputs
 
-        # entity marker starter
+        # entity marker starter，其实这里不是严格意义的batch_size，是对比句子对1和2拼接起来的batch_size，所以比args传过来的大2倍
         batch_size = input.size()[0]
         indice = torch.arange(0, batch_size)
-        h_state = outputs[0][indice, h_pos] # (batch_size * 2, hidden_size)
+        h_state = outputs[0][indice, h_pos] # (batch_size * 2, hidden_size)  #同MTP一样获取实体位置的隐藏状态
         t_state = outputs[0][indice, t_pos]
-        state = torch.cat((h_state, t_state), 1)
-
+        state = torch.cat((h_state, t_state), 1)   #拼接隐藏状态
+        # state: torch.Size([64, 1536]), label: 64
         r_loss = self.ntxloss(state, label)
 
         return m_loss, r_loss
